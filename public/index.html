@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تطبيق رفع الصور</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .upload-section {
+            padding: 30px;
+        }
+
+        .upload-area {
+            border: 3px dashed #667eea;
+            border-radius: 10px;
+            padding: 40px;
+            text-align: center;
+            margin-bottom: 20px;
+            background: #f8f9ff;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .upload-area:hover {
+            border-color: #764ba2;
+            background: #f0f2ff;
+        }
+
+        .upload-area.dragover {
+            border-color: #764ba2;
+            background: #e8ebff;
+            transform: scale(1.02);
+        }
+
+        .upload-icon {
+            font-size: 3em;
+            color: #667eea;
+            margin-bottom: 15px;
+        }
+
+        .upload-text {
+            font-size: 1.2em;
+            color: #666;
+            margin-bottom: 15px;
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .upload-btn {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 25px;
+            font-size: 1em;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .upload-btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background: #f0f0f0;
+            border-radius: 3px;
+            margin: 20px 0;
+            overflow: hidden;
+            display: none;
+        }
+
+        .progress {
+            height: 100%;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 8px;
+            display: none;
+        }
+
+        .success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+
+        .error {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+
+        .image-preview {
+            max-width: 200px;
+            max-height: 200px;
+            border-radius: 8px;
+            margin: 10px 0;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+
+        .url-copy {
+            display: flex;
+            margin: 10px 0;
+            gap: 10px;
+        }
+
+        .url-input {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 0.9em;
+        }
+
+        .copy-btn {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .copy-btn:hover {
+            background: #218838;
+        }
+
+        .gallery {
+            margin-top: 30px;
+            padding: 30px;
+            background: #f8f9fa;
+        }
+
+        .gallery h2 {
+            color: #333;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .images-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 15px;
+        }
+
+        .image-card {
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            transition: transform 0.2s;
+        }
+
+        .image-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .image-card img {
+            width: 100%;
+            height: 120px;
+            object-fit: cover;
+        }
+
+        .image-info {
+            padding: 10px;
+            font-size: 0.8em;
+            color: #666;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                margin: 10px;
+                border-radius: 10px;
+            }
+            
+            .header {
+                padding: 20px;
+            }
+            
+            .header h1 {
+                font-size: 2em;
+            }
+            
+            .upload-section {
+                padding: 20px;
+            }
+            
+            .upload-area {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📸 تطبيق رفع الصور</h1>
+            <p>ارفع صورك واحصل على روابط مباشرة لها</p>
+        </div>
+
+        <div class="upload-section">
+            <div class="upload-area" onclick="document.getElementById('fileInput').click()">
+                <div class="upload-icon">📁</div>
+                <div class="upload-text">اسحب الصور هنا أو انقر للاختيار</div>
+                <button class="upload-btn">اختيار الصور</button>
+                <input type="file" id="fileInput" class="file-input" multiple accept="image/*">
+            </div>
+
+            <div class="progress-bar" id="progressBar">
+                <div class="progress" id="progress"></div>
+            </div>
+
+            <div class="result" id="result"></div>
+        </div>
+
+        <div class="gallery">
+            <h2>الصور المرفوعة حديثاً</h2>
+            <div class="loading" id="loading">جاري تحميل الصور...</div>
+            <div class="images-grid" id="imagesGrid"></div>
+        </div>
+    </div>
+
+    <script>
+        const fileInput = document.getElementById('fileInput');
+        const uploadArea = document.querySelector('.upload-area');
+        const progressBar = document.getElementById('progressBar');
+        const progress = document.getElementById('progress');
+        const result = document.getElementById('result');
+        const imagesGrid = document.getElementById('imagesGrid');
+        const loading = document.getElementById('loading');
+
+        // Drag and drop functionality
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            handleFiles(files);
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            handleFiles(e.target.files);
+        });
+
+        function handleFiles(files) {
+            if (files.length === 0) return;
+
+            const formData = new FormData();
+            
+            if (files.length === 1) {
+                formData.append('image', files[0]);
+                uploadSingle(formData);
+            } else {
+                for (let file of files) {
+                    formData.append('images', file);
+                }
+                uploadMultiple(formData);
+            }
+        }
+
+        function uploadSingle(formData) {
+            showProgress();
+            
+            fetch('/upload', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                hideProgress();
+                if (data.success) {
+                    showSuccess(data);
+                } else {
+                    showError(data.message);
+                }
+                loadGallery(); // تحديث المعرض
+            })
+            .catch(error => {
+                hideProgress();
+                showError('حدث خطأ في الشبكة');
+                console.error('Error:', error);
+            });
+        }
+
+        function uploadMultiple(formData) {
+            showProgress();
+            
+            fetch('/upload-multiple', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                hideProgress();
+                if (data.success) {
+                    showMultipleSuccess(data);
+                } else {
+                    showError(data.message);
+                }
+                loadGallery(); // تحديث المعرض
+            })
+            .catch(error => {
+                hideProgress();
+                showError('حدث خطأ في الشبكة');
+                console.error('Error:', error);
+            });
+        }
+
+        function showProgress() {
+            progressBar.style.display = 'block';
+            progress.style.width = '0%';
+            
+            // محاكاة التقدم
+            let width = 0;
+            const interval = setInterval(() => {
+                width += Math.random() * 30;
+                if (width >= 90) {
+                    clearInterval(interval);
+                    width = 90;
+                }
+                progress.style.width = width + '%';
+            }, 200);
+        }
+
+        function hideProgress() {
+            progress.style.width = '100%';
+            setTimeout(() => {
+                progressBar.style.display = 'none';
+                progress.style.width = '0%';
+            }, 500);
+        }
+
+        function showSuccess(data) {
+            result.className = 'result success';
+            result.style.display = 'block';
+            result.innerHTML = `
+                <h3>✅ ${data.message}</h3>
+                <img src="${data.imageUrl}" alt="Uploaded image" class="image-preview">
+                <div class="url-copy">
+                    <input type="text" class="url-input" value="${data.imageUrl}" readonly>
+                    <button class="copy-btn" onclick="copyUrl('${data.imageUrl}')">نسخ الرابط</button>
+                </div>
+                <p><strong>اسم الملف:</strong> ${data.originalName}</p>
+                <p><strong>الحجم:</strong> ${formatFileSize(data.size)}</p>
+            `;
+        }
+
+        function showMultipleSuccess(data) {
+            result.className = 'result success';
+            result.style.display = 'block';
+            
+            let imagesHtml = '';
+            data.images.forEach(image => {
+                imagesHtml += `
+                    <div style="margin: 15px 0; padding: 15px; border: 1px solid #ddd; border-radius: 8px;">
+                        <img src="${image.imageUrl}" alt="Uploaded image" class="image-preview">
+                        <div class="url-copy">
+                            <input type="text" class="url-input" value="${image.imageUrl}" readonly>
+                            <button class="copy-btn" onclick="copyUrl('${image.imageUrl}')">نسخ الرابط</button>
+                        </div>
+                        <p><strong>اسم الملف:</strong> ${image.originalName}</p>
+                        <p><strong>الحجم:</strong> ${formatFileSize(image.size)}</p>
+                    </div>
+                `;
+            });
+            
+            result.innerHTML = `
+                <h3>✅ ${data.message}</h3>
+                ${imagesHtml}
+            `;
+        }
+
+        function showError(message) {
+            result.className = 'result error';
+            result.style.display = 'block';
+            result.innerHTML = `<h3>❌ خطأ</h3><p>${message}</p>`;
+        }
+
+        function copyUrl(url) {
+            navigator.clipboard.writeText(url).then(() => {
+                alert('تم نسخ الرابط!');
+            });
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        function loadGallery() {
+            loading.style.display = 'block';
+            imagesGrid.innerHTML = '';
+            
+            fetch('/images')
+            .then(response => response.json())
+            .then(data => {
+                loading.style.display = 'none';
+                if (data.success && data.images.length > 0) {
+                    data.images.slice(0, 12).forEach(image => {
+                        const imageCard = document.createElement('div');
+                        imageCard.className = 'image-card';
+                        imageCard.innerHTML = `
+                            <img src="${image.url}" alt="${image.filename}" onclick="copyUrl('${image.url}')">
+                            <div class="image-info">
+                                <div style="font-weight: bold;">${image.filename}</div>
+                                <div>${new Date(image.uploadDate).toLocaleDateString('ar-EG')}</div>
+                            </div>
+                        `;
+                        imagesGrid.appendChild(imageCard);
+                    });
+                } else {
+                    imagesGrid.innerHTML = '<p style="text-align: center; color: #666;">لا توجد صور مرفوعة بعد</p>';
+                }
+            })
+            .catch(error => {
+                loading.style.display = 'none';
+                console.error('Error loading gallery:', error);
+                imagesGrid.innerHTML = '<p style="text-align: center; color: #e74c3c;">خطأ في تحميل المعرض</p>';
+            });
+        }
+
+        // تحميل المعرض عند تحميل الصفحة
+        document.addEventListener('DOMContentLoaded', loadGallery);
+    </script>
+</body>
+</html>
