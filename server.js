@@ -10,12 +10,13 @@ const PORT = process.env.PORT || 3000;
 
 // إعداد الجلسات
 app.use(session({
-    secret: 'image-upload-secret-key-2024',
+    secret: process.env.SESSION_SECRET || 'image-upload-secret-key-2024-sultan-private-app',
     resave: false,
     saveUninitialized: false,
     cookie: { 
         secure: false, // تعيين إلى true في الإنتاج مع HTTPS
-        maxAge: 24 * 60 * 60 * 1000 // 24 ساعة
+        maxAge: 24 * 60 * 60 * 1000, // 24 ساعة
+        httpOnly: true // منع الوصول للجلسة عبر JavaScript
     }
 }));
 
@@ -109,9 +110,10 @@ app.post('/login', async (req, res) => {
         // البحث عن المستخدم
         const user = users.find(u => u.username === username);
         if (!user) {
+            // عدم الكشف عن سبب الفشل الدقيق لأسباب أمنية
             return res.status(401).json({
                 success: false,
-                message: 'اسم المستخدم أو كلمة المرور غير صحيحة'
+                message: 'بيانات تسجيل الدخول غير صحيحة'
             });
         }
 
@@ -120,7 +122,7 @@ app.post('/login', async (req, res) => {
         if (!isValidPassword) {
             return res.status(401).json({
                 success: false,
-                message: 'اسم المستخدم أو كلمة المرور غير صحيحة'
+                message: 'بيانات تسجيل الدخول غير صحيحة'
             });
         }
 
