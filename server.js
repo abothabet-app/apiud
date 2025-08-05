@@ -2,9 +2,49 @@ const express = require('express');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+const session = require('express-session');
+const bcrypt = require('bcryptjs');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// إعداد الجلسات
+app.use(session({
+    secret: 'image-upload-secret-key-2024',
+    resave: false,
+    saveUninitialized: false,
+    cookie: { 
+        secure: false, // تعيين إلى true في الإنتاج مع HTTPS
+        maxAge: 24 * 60 * 60 * 1000 // 24 ساعة
+    }
+}));
+
+// معالجة البيانات JSON
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// بيانات المستخدمين (في تطبيق حقيقي، استخدم قاعدة بيانات)
+const users = [
+    {
+        id: 1,
+        username: 'admin',
+        password: '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi' // admin123
+    },
+    {
+        id: 2,
+        username: 'sultan',
+        password: '$2b$10$N8YonNzSoG6pu8sWyeB0suxxtrocwRmREf.5VPickNzGK3VNvwe5S' // sso@402426
+    }
+];
+
+// وظيفة للتحقق من المصادقة
+function requireAuth(req, res, next) {
+    if (req.session && req.session.userId) {
+        return next();
+    } else {
+        return res.redirect('/login');
+    }
+}
 
 // إنشاء مجلد الصور إذا لم يكن موجوداً
 const uploadDir = path.join(__dirname, 'uploads');
@@ -46,13 +86,88 @@ const upload = multer({
 app.use('/uploads', express.static('uploads'));
 app.use(express.static('public'));
 
-// الصفحة الرئيسية
-app.get('/', (req, res) => {
+// صفحة تسجيل الدخول
+app.get('/login', (req, res) => {
+    if (req.session && req.session.userId) {
+        return res.redirect('/');
+    }
+    res.sendFile(path.join(__dirname, 'public', 'login.html'));
+});
+
+// معالجة تسجيل الدخول
+app.post('/login', async (req, res) => {
+    try {
+        const { username, password } = req.body;
+        
+        if (!username || !password) {
+            return res.status(400).json({
+                success: false,
+                message: 'يرجى إدخال اسم المستخدم وكلمة المرور'
+            });
+        }
+
+        // البحث عن المستخدم
+        const user = users.find(u => u.username === username);
+        if (!user) {
+            return res.status(401).json({
+                success: false,
+                message: 'اسم المستخدم أو كلمة المرور غير صحيحة'
+            });
+        }
+
+        // التحقق من كلمة المرور
+        const isValidPassword = await bcrypt.compare(password, user.password);
+        if (!isValidPassword) {
+            return res.status(401).json({
+                success: false,
+                message: 'اسم المستخدم أو كلمة المرور غير صحيحة'
+            });
+        }
+
+        // إنشاء جلسة
+        req.session.userId = user.id;
+        req.session.username = user.username;
+
+        res.json({
+            success: true,
+            message: 'تم تسجيل الدخول بنجاح',
+            user: {
+                id: user.id,
+                username: user.username
+            }
+        });
+    } catch (error) {
+        console.error('Login error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'حدث خطأ في الخادم'
+        });
+    }
+});
+
+// تسجيل الخروج
+app.post('/logout', (req, res) => {
+    req.session.destroy((err) => {
+        if (err) {
+            return res.status(500).json({
+                success: false,
+                message: 'حدث خطأ أثناء تسجيل الخروج'
+            });
+        }
+        res.json({
+            success: true,
+            message: 'تم تسجيل الخروج بنجاح'
+        });
+    });
+});
+
+// الصفحة الرئيسية (محمية)
+app.get('/', requireAuth, (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// رفع صورة واحدة
-app.post('/upload', upload.single('image'), (req, res) => {
+// رفع صورة واحدة (محمي)
+app.post('/upload', requireAuth, upload.single('image'), (req, res) => {
     try {
         if (!req.file) {
             return res.status(400).json({ 
@@ -80,8 +195,8 @@ app.post('/upload', upload.single('image'), (req, res) => {
     }
 });
 
-// رفع عدة صور
-app.post('/upload-multiple', upload.array('images', 10), (req, res) => {
+// رفع عدة صور (محمي)
+app.post('/upload-multiple', requireAuth, upload.array('images', 10), (req, res) => {
     try {
         if (!req.files || req.files.length === 0) {
             return res.status(400).json({ 
@@ -111,8 +226,8 @@ app.post('/upload-multiple', upload.array('images', 10), (req, res) => {
     }
 });
 
-// الحصول على قائمة الصور المرفوعة
-app.get('/images', (req, res) => {
+// الحصول على قائمة الصور المرفوعة (محمي)
+app.get('/images', requireAuth, (req, res) => {
     try {
         const files = fs.readdirSync(uploadDir);
         const images = files

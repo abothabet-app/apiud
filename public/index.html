@@ -32,6 +32,7 @@
             color: white;
             padding: 30px;
             text-align: center;
+            position: relative;
         }
 
         .header h1 {
@@ -42,6 +43,25 @@
         .header p {
             font-size: 1.1em;
             opacity: 0.9;
+        }
+
+        .logout-btn {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: 1px solid rgba(255,255,255,0.3);
+            padding: 8px 15px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: all 0.3s ease;
+        }
+
+        .logout-btn:hover {
+            background: rgba(255,255,255,0.3);
+            transform: translateY(-1px);
         }
 
         .upload-section {
@@ -248,6 +268,7 @@
 <body>
     <div class="container">
         <div class="header">
+            <button class="logout-btn" onclick="logout()">🚪 تسجيل الخروج</button>
             <h1>📸 تطبيق رفع الصور</h1>
             <p>ارفع صورك واحصل على روابط مباشرة لها</p>
         </div>
@@ -486,6 +507,31 @@
 
         // تحميل المعرض عند تحميل الصفحة
         document.addEventListener('DOMContentLoaded', loadGallery);
+
+        // وظيفة تسجيل الخروج
+        function logout() {
+            if (confirm('هل أنت متأكد من تسجيل الخروج؟')) {
+                fetch('/logout', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        window.location.href = '/login';
+                    } else {
+                        alert('حدث خطأ أثناء تسجيل الخروج');
+                    }
+                })
+                .catch(error => {
+                    console.error('Logout error:', error);
+                    // حتى لو حدث خطأ، نوجه المستخدم لصفحة تسجيل الدخول
+                    window.location.href = '/login';
+                });
+            }
+        }
     </script>
 </body>
 </html>
